@@ -30,6 +30,7 @@ interface FormData {
 const RentForm: React.FC<RentFormProps> = ({ onCancel, onSuccess, initialPosition }) => {
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
+  const [locationAddress, setLocationAddress] = useState<string | null>(null);
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -45,12 +46,41 @@ const RentForm: React.FC<RentFormProps> = ({ onCancel, onSuccess, initialPositio
     },
   });
 
+  const propertyType = form.watch('propertyType');
+
   useEffect(() => {
     if (initialPosition) {
       form.setValue('latitude', initialPosition.lat);
       form.setValue('longitude', initialPosition.lng);
+
+      const fetchAddress = async () => {
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${initialPosition.lat}&lon=${initialPosition.lng}`
+          );
+          const data = await response.json();
+          if (data.display_name) {
+            setLocationAddress(data.display_name);
+          } else {
+            setLocationAddress('Unknown location');
+          }
+        } catch (error) {
+          console.error('Error fetching address:', error);
+          setLocationAddress('Could not retrieve address');
+        }
+      };
+      fetchAddress();
+    } else {
+      setLocationAddress(null);
     }
   }, [initialPosition, form]);
+
+  useEffect(() => {
+    if (propertyType === 'STUDIO' || propertyType === 'SINGLE_ROOM') {
+      form.setValue('bedrooms', 0);
+      form.clearErrors('bedrooms');
+    }
+  }, [propertyType, form]);
 
   const onSubmit = async (values: FormData) => {
     setShowAlert(false);
@@ -92,6 +122,12 @@ const RentForm: React.FC<RentFormProps> = ({ onCancel, onSuccess, initialPositio
           <Alert>
             <AlertTitle>Error!</AlertTitle>
             <AlertDescription>{alertMessage}</AlertDescription>
+          </Alert>
+        )}
+        {locationAddress && (
+          <Alert>
+            <AlertTitle>Location Selected:</AlertTitle>
+            <AlertDescription>{locationAddress}</AlertDescription>
           </Alert>
         )}
         <FormField
@@ -181,6 +217,7 @@ const RentForm: React.FC<RentFormProps> = ({ onCancel, onSuccess, initialPositio
                     field.onChange(value === '' ? undefined : Number(value));
                   }}
                   value={field.value === undefined ? '' : field.value}
+                  disabled={propertyType === 'STUDIO' || propertyType === 'SINGLE_ROOM'}
                 />
               </FormControl>
               <FormMessage />
