@@ -1,6 +1,19 @@
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import { useEffect, useState } from 'react';
 import { LatLng } from 'leaflet';
+import L from 'leaflet';
+import { MapPin } from 'lucide-react';
+import { renderToString } from 'react-dom/server';
+
+// Custom icon for selected position
+const greenIcon = new L.Icon({
+  iconUrl: 'data:image/svg+xml;base64,' + btoa(renderToString(
+    <MapPin size={48} color="#16a34a" fill="#16a34a" />
+  )),
+  iconSize: [48, 48],
+  iconAnchor: [24, 48],
+  popupAnchor: [0, -48],
+});
 
 interface RentEntry {
   id: string;
@@ -17,6 +30,7 @@ interface MapProps {
   selectedPosition: LatLng | null;
   center: [number, number];
   zoom: number;
+  selectedLocationAddress: string | null;
 }
 
 const MapEvents = ({ onMapClick }: { onMapClick: (latLng: LatLng) => void }) => {
@@ -34,10 +48,23 @@ const ChangeView = ({ center, zoom }: { center: [number, number]; zoom: number }
   return null;
 };
 
-const Map = ({ onMapClick, selectedPosition, center, zoom }: MapProps) => {
+const Map = ({ onMapClick, selectedPosition, center, zoom, selectedLocationAddress }: MapProps) => {
   const [rentData, setRentData] = useState<RentEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  useEffect(() => {
+    if (selectedPosition && selectedLocationAddress) {
+      setShowConfirmation(false); // Hide immediately on new selection
+      const timer = setTimeout(() => {
+        setShowConfirmation(true);
+      }, 700); // Increased delay to 700ms
+      return () => clearTimeout(timer); // Clean up the timer
+    } else {
+      setShowConfirmation(false);
+    }
+  }, [selectedPosition, selectedLocationAddress]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,14 +94,23 @@ const Map = ({ onMapClick, selectedPosition, center, zoom }: MapProps) => {
   }
 
   return (
-    <MapContainer center={center} zoom={zoom} scrollWheelZoom={false} style={{ height: '100%', width: '100%', zIndex: 1 }}>
+    <MapContainer center={center} zoom={zoom} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 1 }}>
       <ChangeView center={center} zoom={zoom} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <MapEvents onMapClick={onMapClick} />
-      {selectedPosition && <Marker position={selectedPosition} />}
+      {selectedPosition && (
+        <Marker position={selectedPosition} icon={greenIcon}>
+          {showConfirmation && (
+            <Popup offset={[0, -50]}>
+              Location Selected!
+              {selectedLocationAddress && <p>{selectedLocationAddress}</p>}
+            </Popup>
+          )}
+        </Marker>
+      )}
       {rentData.map((entry) => (
         <Marker key={entry.id} position={[entry.latitude, entry.longitude]}>
           <Popup>
