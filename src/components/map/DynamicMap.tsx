@@ -6,6 +6,7 @@ interface MapProps {
   selectedPosition: LatLng | null;
   center: [number, number];
   zoom: number;
+  selectedLocationAddress: string | null;
 }
 
 const DynamicMap = dynamic(() => import('./Map'), {
