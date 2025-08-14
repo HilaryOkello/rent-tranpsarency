@@ -15,6 +15,18 @@ const greenIcon = new L.Icon({
   popupAnchor: [0, -48],
 });
 
+// Custom icon for rent entries
+const rentEntryIcon = new L.Icon({
+  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48">
+      <path fill="#16a34a" d="M12 0C7.58 0 4 3.58 4 8c0 7 8 16 8 16s8-9 8-16c0-4.42-3.58-8-8-8zm0 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+    </svg>
+  `),
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -32],
+});
+
 interface RentEntry {
   id: string;
   rent: number;
@@ -112,7 +124,7 @@ const Map = ({ onMapClick, selectedPosition, center, zoom, selectedLocationAddre
         </Marker>
       )}
       {rentData.map((entry) => (
-        <Marker key={entry.id} position={[entry.latitude, entry.longitude]}>
+        <Marker key={entry.id} position={[entry.latitude, entry.longitude]} icon={rentEntryIcon}>
           <Popup>
             <div className="font-mono">
               <h3 className="font-bold">{entry.estate}</h3>
